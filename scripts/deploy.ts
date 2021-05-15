@@ -1,5 +1,4 @@
 import { ethers } from 'hardhat'
-
 ;(async () => {
   const factory = await ethers.getContractFactory('BonkCoin')
 
@@ -7,10 +6,10 @@ import { ethers } from 'hardhat'
   let contract = await factory.deploy()
 
   // The address the Contract WILL have once mined
-  console.log(contract.address)
-
-  // The transaction that was sent to the network to deploy the Contract
-  console.log(contract.deployTransaction.hash)
+  console.log({
+    address: contract.address,
+    deployHash: contract.deployTransaction.hash,
+  })
 
   // The contract is NOT deployed yet; we must wait until it is mined
   await contract.deployed()

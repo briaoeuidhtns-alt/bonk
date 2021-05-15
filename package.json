@@ -1,32 +1,25 @@
 {
-  "name": "solidity-ts-dev-stack-example",
-  "version": "0.0.2",
+  "name": "bonk-coin",
+  "version": "0.0.1",
+  "license": "GPL-3.0-or-later",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run clean && npm run compile",
-    "clean": "npx hardhat clean",
-    "compile": "npx hardhat compile",
-    "test": "npx hardhat test",
-    "coverage": "npm run build && npx hardhat coverage --temp artifacts --network coverage"
+    "build": "yarn clean && yarn compile",
+    "clean": "yarn hardhat clean",
+    "compile": "yarn hardhat compile",
+    "test": "yarn hardhat test"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rhlsthrm/solidity-ts-dev-stack-example.git"
-  },
-  "author": "rhlsthrm",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/rhlsthrm/solidity-ts-dev-stack-example/issues"
-  },
-  "homepage": "https://github.com/rhlsthrm/solidity-ts-dev-stack-example#readme",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
     "@nomiclabs/hardhat-etherscan": "^2.1.2",
     "@nomiclabs/hardhat-waffle": "^2.0.1",
+    "@openzeppelin/contracts": "^4.1.0",
     "@typechain/ethers-v5": "^7.0.0",
     "@typechain/hardhat": "^2.0.0",
     "@types/chai": "^4.2.18",
+    "@types/chai-as-promised": "^7.1.4",
+    "@types/mathjs": "^6.0.12",
     "@types/mocha": "^8.2.2",
     "@types/node": "^15.0.3",
     "chai": "^4.3.4",
@@ -35,9 +28,27 @@
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.4",
     "hardhat": "^2.2.1",
+    "hardhat-shorthand": "^1.0.0",
+    "prettier": "^2.3.0",
     "ts-generator": "^0.1.1",
     "ts-node": "^9.1.1",
     "typechain": "^5.0.0",
     "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^3.6.0",
+    "@tensorflow/tfjs-node-gpu": "^3.6.1",
+    "@typegoose/typegoose": "^8.0.0-beta.9",
+    "discord-api-types": "^0.18.1",
+    "discord.js": "https://github.com/discordjs/discord.js",
+    "got": "^11.8.2",
+    "mathjs": "^9.3.2",
+    "mongoose": "^5.12.9",
+    "nsfwjs": "^2.4.0",
+    "ramda": "^0.27.1",
+    "rxjs": "^7.0.1",
+    "seedrandom": "~2.4.3",
+    "serialize-error": "^8.1.0",
+    "table": "^6.7.1"
   }
 }
