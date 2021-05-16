@@ -10,6 +10,7 @@ import { connect as connectDb } from 'mongoose'
 import { DrawLinePredicate, table } from 'table'
 import { ethers } from 'hardhat'
 import { BonkCoin__factory } from '../typechain'
+import { assert } from 'console'
 const HORNLET_PER_DSTN = 10 ** 18
 
 const BONK = '<:bonk:842685478037487626>'
@@ -32,19 +33,19 @@ const factory = async () => {
     useFindAndModify: false,
     useCreateIndex: true,
   })
+  console.log('Connected to mongo')
 
   const [owner] = await ethers.getSigners()
 
   const bonkCoinFactory = <BonkCoin__factory>(
     await ethers.getContractFactory('BonkCoin', owner)
   )
-  const token = await bonkCoinFactory.deploy()
-  await token.deployed()
 
-  console.log({
-    address: await owner.getAddress(),
-    balance: (await token.balanceOf(await owner.getAddress())).toBigInt(),
-  })
+  if (process.env.CONTRACT_ADDRESS == null)
+    throw new Error('Contract address not set')
+
+  const token = bonkCoinFactory.attach(process.env.CONTRACT_ADDRESS)
+  console.log('Attached to contract')
 
   const client = new Client({
     intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
@@ -188,11 +189,17 @@ ${table([
   client.on('message', async (msg) => {
     if (msg.author.bot) return
 
-    const imgUrls = extractUrls(msg.content).filter((url) =>
-      ['bmp', 'gif', 'jpeg', 'jpg', 'png'].includes(
-        url.substring(url.lastIndexOf('.') + 1)
-      )
-    )
+    const imgUrls = [
+      ...extractUrls(msg.content).filter((url) =>
+        ['bmp', 'gif', 'jpeg', 'jpg', 'png'].includes(
+          url.substring(url.lastIndexOf('.') + 1)
+        )
+      ),
+      ...msg.attachments
+        .filter(({ contentType: t }) => !!t?.split(/\//).includes('image'))
+        .map(({ proxyURL: u }) => u),
+    ]
+
     const p = (await Promise.all(imgUrls.map(getClassification)))
       .map(pHornypost)
       .reduce((a, b) => Math.max(a, b), 0)
@@ -231,7 +238,8 @@ ${status}`
     }
   })
 
-  client.login(process.env.DISCORD_TOKEN)
+  await client.login(process.env.DISCORD_TOKEN)
+  console.log('Logged in to discord')
 }
 
 // XXXXX started here for now
