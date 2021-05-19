@@ -1,6 +1,4 @@
 import { prop, getModelForClass } from '@typegoose/typegoose'
-import { BigNumber, BigNumberish } from 'ethers'
-import { ethers } from 'hardhat'
 
 export class User {
   // TODO for this to be atomic should prob be an array of transactions

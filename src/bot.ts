@@ -4,13 +4,15 @@ import {
   Intents,
   CommandInteraction,
 } from 'discord.js'
-import { extractUrls, getClassification, Prediction } from './classifier'
+import { getClassification, Prediction } from './classifier'
 import UserModel from './models/User'
+import GuildPost from './models/GuildPost'
 import { connect as connectDb } from 'mongoose'
 import { DrawLinePredicate, table } from 'table'
 import { ethers } from 'hardhat'
 import { BonkCoin__factory } from '../typechain'
-import { assert } from 'console'
+import imageExtractor from './imageExtractor'
+import { pipeAsync } from 'ramda-async'
 const HORNLET_PER_DSTN = 10 ** 18
 
 const BONK = '<:bonk:842685478037487626>'
@@ -58,7 +60,7 @@ const factory = async () => {
         {
           name: 'input',
           type: 'STRING',
-          description: 'The url of the image to deposit',
+          description: 'The url of the image to classify',
           required: true,
         },
       ],
@@ -66,7 +68,13 @@ const factory = async () => {
         // TODO implicit assertion from declared types?
         // dispatcher and code gen thing?
         // if (!(typeof urls === 'string')) throw new Error()
-        const classifications = await Promise.all(urls.map(getClassification))
+        const classifications = await Promise.all(
+          (
+            await imageExtractor({
+              resources: urls.map((url) => ({ url: new URL(url) })),
+            })
+          ).map(getClassification)
+        )
         const titleEntryLine: DrawLinePredicate = (i, n) =>
           [0, 1, n].includes(i)
         const tableConfig = {
@@ -132,6 +140,36 @@ ${err}
         }
       },
     },
+    'repost-count': {
+      description:
+        'Get the number of times this image url has been reposted in this server',
+      options: [
+        {
+          name: 'input',
+          type: 'STRING',
+          description: 'The url of the image to count',
+          required: true,
+        },
+      ],
+      handler: async (interaction, imgPath) => {
+        if (!interaction.guild) {
+          interaction.reply('Not in a guild')
+        } else {
+          const img = new URL(imgPath)
+          await interaction.reply('Fetching repost info...')
+          const post = await GuildPost.findOne({
+            discordId: interaction.guild.id,
+            baseUrl: img.hostname + img.pathname,
+          })
+
+          interaction.editReply(
+            `I have seen this image ${post?.repostCount ?? 0} time${
+              post?.repostCount === 1 ? '' : 's'
+            } in this guild`
+          )
+        }
+      },
+    },
     balance: {
       description: 'Get your balance',
       handler: async (interaction) => {
@@ -189,22 +227,28 @@ ${table([
   client.on('message', async (msg) => {
     if (msg.author.bot) return
 
-    const imgUrls = [
-      ...extractUrls(msg.content).filter((url) =>
-        ['bmp', 'gif', 'jpeg', 'jpg', 'png'].includes(
-          url.substring(url.lastIndexOf('.') + 1)
+    const imgUrlsWReposts = await imageExtractor(msg)
+    const imgUrlsRepostP = await Promise.all(
+      imgUrlsWReposts.map(async (img) => {
+        if (!msg.guild) return false
+        const post = await GuildPost.findOneAndUpdate(
+          { discordId: msg.guild.id, baseUrl: img.hostname + img.pathname },
+          { $inc: { repostCount: 1 } },
+          { upsert: true, setDefaultsOnInsert: true }
         )
-      ),
-      ...msg.attachments
-        .filter(({ contentType: t }) => !!t?.split(/\//).includes('image'))
-        .map(({ proxyURL: u }) => u),
-    ]
+        // if null then hadn't been posted before
+        return post == null
+      })
+    )
+    const imgUrls = imgUrlsWReposts.filter((_, i) => imgUrlsRepostP[i])
 
     const p = (await Promise.all(imgUrls.map(getClassification)))
       .map(pHornypost)
-      .reduce((a, b) => Math.max(a, b), 0)
-    if (p > 0.25) {
-      // in ether
+      .filter((p) => p > 0.25)
+      .reduce((a, b) => a + b, 0)
+
+    if (p) {
+      // in hornlet
       const reward = BigInt(Math.floor(p * HORNLET_PER_DSTN))
       await msg.react(BONK)
       const replyBody = `That post just earned you ${
